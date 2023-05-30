@@ -65,7 +65,7 @@ LIST FROM "$.{path}"
 ### tasks
 
 `````markdown
-````pack-source test3
+````pack-source tasks
 ```tasks
 not done
 due after $.{date}
