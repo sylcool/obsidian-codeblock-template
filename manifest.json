@@ -1,10 +1,10 @@
 {
 	"id": "obsidian-codeblock-template",
-	"name": "codeblock-template",
+	"name": "Codeblock Template",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "A template plugin that allows for the reuse of content within Code Blocks!",
-	"author": "super10",
+	"author": "Super10",
 	"authorUrl": "",
 	"fundingUrl": "",
 	"isDesktopOnly": false
