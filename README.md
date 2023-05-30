@@ -1,6 +1,6 @@
 # Obsidian-Codeblock-Template
 
-一个可以把Code Block的内容重复利用模板插件！
+一个可以把 Code Block 的内容重复利用模板插件！
 
 ## 使用
 
@@ -8,7 +8,7 @@
 
 设置模板的声明路径，默认路径为根目录的`templates`。
 
-![image-20230530111141107](./assets/image-20230530111141107.png)
+![image1](./assets/image1.png)
 
 ### 基本使用
 
@@ -24,14 +24,11 @@
 
 ````markdown
 ```pack-view a
+
 ```
 ````
 
-
-
-![z8mjj-4gof7](./assets/z8mjj-4gof7.gif)
-
-
+![gif](./assets/image2.gif)
 
 ### 插值
 
@@ -43,7 +40,7 @@ Hello $.{name}！
 ```
 ````
 
-通过`key = value`或`key = "value"`来定义变量。**注意：为了方便存储，key要符合标识符定义规则[^1]**
+通过`key = value`或`key = "value"`来定义变量。**注意：为了方便存储，key 要符合标识符定义规则[^1]**
 
 ````markdown
 ```pack-view test1
@@ -51,9 +48,7 @@ name = "Super10"
 ```
 ````
 
-![image-20230530123348408](./assets/image-20230530123348408.png)
-
-
+![image3](./assets/image3.png)
 
 ## 配合其他插件使用
 
@@ -67,8 +62,6 @@ LIST FROM "$.{path}"
 ````
 `````
 
-
-
 ### tasks
 
 `````markdown
@@ -79,8 +72,6 @@ due after $.{date}
 ```
 ````
 `````
-
-
 
 ---
 

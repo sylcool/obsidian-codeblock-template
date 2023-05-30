@@ -1,11 +1,11 @@
 {
-	"id": "obsidian-packaging-plugin",
-	"name": "Packaging Plugin",
+	"id": "obsidian-codeblock-template",
+	"name": "codeblock-template",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "A template plugin that allows for the reuse of content within Code Blocks!",
+	"author": "super10",
+	"authorUrl": "",
+	"fundingUrl": "",
 	"isDesktopOnly": false
 }
