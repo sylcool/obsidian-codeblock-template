@@ -10,14 +10,14 @@ import { RE } from "./utils/utils";
 import { ValueData } from "./model/ValueData";
 import {
 	DEFAULT_SETTINGS,
-	PackagingPluginSettings,
-	PackagingSettingTab,
-	// PackagingSettingTab,
-} from "./settings/PackagingSetTab";
+	CodeBlockTemplatePluginSettings,
+	CodeBlockTemplateSettingTab,
+	// CodeBlockTemplateSettingTab,
+} from "./settings/CodeBlockTemplateSetTab";
 import { Key2List } from "./model/ViewMesModel";
 
-export default class PackagingPlugin extends Plugin {
-	settings: PackagingPluginSettings;
+export default class CodeBlockTemplatePlugin extends Plugin {
+	settings: CodeBlockTemplatePluginSettings;
 
 	isEvent: boolean = false;
 
@@ -32,12 +32,12 @@ export default class PackagingPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.addSettingTab(new PackagingSettingTab(this.app, this));
+		this.addSettingTab(new CodeBlockTemplateSettingTab(this.app, this));
 
 		// __________________初始化__________________
 		await this.initialize();
 		if (this.settings.sourcePath === "")
-			new Notice("Packaging-Plugin：Source Path is undefined！");
+			new Notice("CodeBlockTemplate Plugin：Source Path is undefined！");
 	}
 
 	onunload() {}

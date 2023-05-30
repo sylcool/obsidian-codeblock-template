@@ -1,21 +1,21 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
-import PackagingPlugin from "src/main";
+import CodeBlockTemplatePlugin from "src/main";
 import { Key2List } from "src/model/ViewMesModel";
 
-export interface PackagingPluginSettings {
+export interface CodeBlockTemplatePluginSettings {
 	sourcePath: string;
 	viewCodeBlockInfos: Key2List;
 }
 
-export const DEFAULT_SETTINGS: PackagingPluginSettings = {
+export const DEFAULT_SETTINGS: CodeBlockTemplatePluginSettings = {
 	sourcePath: "templates",
 	viewCodeBlockInfos: {},
 };
 
-export class PackagingSettingTab extends PluginSettingTab {
-	plugin: PackagingPlugin;
+export class CodeBlockTemplateSettingTab extends PluginSettingTab {
+	plugin: CodeBlockTemplatePlugin;
 
-	constructor(app: App, plugin: PackagingPlugin) {
+	constructor(app: App, plugin: CodeBlockTemplatePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -37,7 +37,7 @@ export class PackagingSettingTab extends PluginSettingTab {
 					.onChange(async (text) => {
 						if (text == "") {
 							new Notice(
-								"Packaging-Plugin：Source Path is undefined！This will cause the plugin not to work."
+								"CodeBlockTemplate-Plugin：Source Path is undefined！This will cause the plugin not to work."
 							);
 							return;
 						}

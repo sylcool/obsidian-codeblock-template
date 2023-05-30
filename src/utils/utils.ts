@@ -33,7 +33,7 @@ export class V2SConverter {
 
 		// ___________________提取对应viewName的CodeBlock内容___________________
 		// 通过前缀匹配CodeBlock
-		const cbPrefix = content.match(RE.getReCodeBlockPrefix(viewName))?.[0]; // ?.[0]这个写法有点奇怪，没用过可以记一下
+		const cbPrefix = content.match(RE.getReCodeBlockPrefix(viewName))?.[0];
 		if (cbPrefix == null) return undefined;
 
 		const completionCodeBlock = content.match(
