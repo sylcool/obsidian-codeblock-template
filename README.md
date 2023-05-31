@@ -2,6 +2,13 @@
 
 一个可以把 Code Block 的内容重复利用模板插件！
 
+## 安装
+
+目前这个插件还没上传到 Obsidian 插件库，还需要手动安装。
+
+1. 通过右方 Release latest 下载`main.js`和`manifest.json`。
+2. 在你的插件目录（.obsidian/plugins）新建文件夹`codeblock-template`，并将 main.js 和 manifes.json 文件放入此文件夹即可。
+
 ## 使用
 
 ### 设置
