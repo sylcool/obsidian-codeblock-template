@@ -1,25 +1,27 @@
 # Obsidian-Codeblock-Template
 
+[简体中文](./README.md)|[English](./README_EN.md)
+
 一个可以把 Code Block 的内容重复利用模板插件！
 
 ## 安装
 
 目前这个插件还没上传到 Obsidian 插件库，还需要手动安装。
 
-1. 通过右方 Release latest 下载`main.js`和`manifest.json`。
+1. 通过右方 **release** latest 下载`main.js`和`manifest.json`。
 2. 在你的插件目录（.obsidian/plugins）新建文件夹`codeblock-template`，并将 main.js 和 manifes.json 文件放入此文件夹即可。
 
 ## 使用
 
 ### 设置
 
-设置模板的声明路径，默认路径为根目录的`templates`。
+设置模板存放路径，默认路径为根目录的`templates`。
 
 ![image1](./assets/image1.png)
 
 ### 基本使用
 
-创建模板
+**创建模板**
 
 ````markdown
 ```pack-source a
@@ -27,7 +29,9 @@
 ```
 ````
 
-使用模板
+注意：要在设置中`Template Source Path`指定的路径下创建才有效。
+
+**使用模板**
 
 ````markdown
 ```pack-view a
@@ -80,6 +84,9 @@ due after $.{date}
 ````
 `````
 
----
+## 预计开发
+
+-   [ ] 批量变量传入
+-   [ ] 读取本地 JSON、CSV 数据
 
 [^1]: 标识符可由三类字符：字母、下划线、数字组成；标识符只能由字母或下划线开头
