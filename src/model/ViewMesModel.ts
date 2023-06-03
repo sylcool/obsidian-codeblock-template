@@ -1,6 +1,5 @@
 interface CodeBlockPostViewInfo {
 	source: string;
-	elID: string;
 	path: string;
 }
 

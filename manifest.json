@@ -5,7 +5,6 @@
 	"minAppVersion": "0.15.0",
 	"description": "A template plugin that allows for the reuse of content within Code Blocks, with the ability to utilize variables.",
 	"author": "Super10",
-	"authorUrl": "",
-	"fundingUrl": "",
+	"authorUrl": "https://github.com/sylcool",
 	"isDesktopOnly": false
 }

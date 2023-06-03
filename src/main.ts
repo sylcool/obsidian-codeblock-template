@@ -3,39 +3,75 @@ import {
 	MarkdownRenderer,
 	Notice,
 	Plugin,
+	TFile,
 } from "obsidian";
 import { FileOpt, StrOpt, V2SConverter } from "./utils/utils";
-import { Name2Path } from "./model/ReflexModel";
+import { Name2Path, UserValueData } from "./model/ReflexModel";
 import { RE } from "./utils/utils";
-import { ValueData } from "./model/ValueData";
 import {
 	DEFAULT_SETTINGS,
 	CodeBlockTemplatePluginSettings,
 	CodeBlockTemplateSettingTab,
-	// CodeBlockTemplateSettingTab,
 } from "./settings/CodeBlockTemplateSetTab";
 import { Key2List } from "./model/ViewMesModel";
 
 export default class CodeBlockTemplatePlugin extends Plugin {
 	settings: CodeBlockTemplatePluginSettings;
 
-	isEvent: boolean = false;
+	viewCodeBlockInfos: Key2List = {};
 
-	sourceNameList: string[] = [];
 	oldSourceNameList: string[] = [];
-
-	sourceName2FilePath: Name2Path = {};
 	oldSourceName2FilePath: Name2Path = {};
-
-	cbInfos: Key2List = {};
 
 	async onload() {
 		await this.loadSettings();
 
 		this.addSettingTab(new CodeBlockTemplateSettingTab(this.app, this));
 
-		// __________________初始化__________________
-		await this.initialize();
+		this.app.workspace.onLayoutReady(async () => {
+			// __________________初始化__________________
+			if (this.settings.sourceNameList.length == 0) {
+				await this.getSourceName2FilePath();
+				this.renderAll();
+			}
+		});
+
+		this.registerMarkdownCodeBlockProcessor(
+			"pack-view",
+			(source, el, ctx) => {
+				// __________________获取viewName__________________
+				const viewName = this.getCodeBlockName(ctx, el);
+				if (viewName == undefined) return;
+
+				// __________________将TemplContent渲染到页面__________________
+				// 设置el的id，用于重新渲染
+				el.className = "pack-view-" + viewName;
+
+				// 保存CodeBlock信息
+				this.viewCodeBlockInfos[viewName] = {
+					source: source,
+					path: ctx.sourcePath,
+				};
+
+				this.render(viewName, source, ctx.sourcePath);
+			}
+		);
+
+		this.registerMarkdownCodeBlockProcessor(
+			"pack-source",
+			async (source, el, ctx) => {
+				el.createEl("pre").createEl("code", { text: source });
+				await this.getSourceName2FilePath();
+				const sourceName = this.getCodeBlockName(ctx, el);
+				if (sourceName == undefined) return;
+
+				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
+
+				if (cbInfoItem)
+					this.render(sourceName, cbInfoItem.source, cbInfoItem.path);
+			}
+		);
+
 		if (this.settings.sourcePath === "")
 			new Notice("CodeBlockTemplate Plugin：Source Path is undefined！");
 	}
@@ -51,106 +87,63 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		this.settings.viewCodeBlockInfos = this.cbInfos;
 		await this.saveData(this.settings);
-	}
-
-	async initialize() {
-		/**
-		 * 初始化插件
-		 * 1. 获取Pack-Source的Names—>FilePath对应关系
-		 * 2. 注册MarkdownCodeBlockProcessor（pack-source、pack-view）
-		 */
-		await this.getSourceName2FilePath();
-
-		this.registerMarkdownCodeBlockProcessor(
-			"pack-view",
-			(source, el, ctx) => {
-				// __________________获取viewName__________________
-				const viewName = this.getCodeBlockName(ctx, el);
-				if (viewName == undefined) return;
-
-				// __________________将TemplContent渲染到页面__________________
-				// 设置el的id，用于重新渲染
-				el.className = "pack-view-" + viewName;
-
-				// 将信息存入cbinfos
-				this.cbInfos[viewName] = {
-					source: source,
-					elID: el.id,
-					path: ctx.sourcePath,
-				};
-				this.saveSettings();
-
-				this.render(viewName, source, ctx.sourcePath);
-			}
-		);
-
-		this.registerMarkdownCodeBlockProcessor(
-			"pack-source",
-			async (source, el, ctx) => {
-				el.createEl("pre").createEl("code", { text: source });
-				await this.getSourceName2FilePath();
-				const sourceName = this.getCodeBlockName(ctx, el);
-				if (sourceName == undefined) return;
-
-				const cbInfoItem = this.cbInfos[sourceName];
-
-				if (this.settings.viewCodeBlockInfos[sourceName] != undefined)
-					this.render(sourceName, cbInfoItem.source, cbInfoItem.path);
-			}
-		);
 	}
 
 	async getSourceName2FilePath() {
 		/**
-		 * （备注：Pack-Source变更时要更新）
-		 * 用于更新sourceName2FilePath
+		 * 功能：
+		 * 1. 获取模板名称到文件路径的对应关系，方便查找模板文件，避免每次查找都遍历Source Path下的所有文件
+		 * 2. 获取最新的模板列表，判断使用的模板是否已经定义
+		 *
+		 * 更新sourceName2FilePath、sourceNameList
 		 */
 
 		const fopt = new FileOpt(this.app);
 
-		this.oldSourceNameList = this.sourceNameList;
-		this.oldSourceName2FilePath = this.sourceName2FilePath;
+		this.oldSourceNameList = this.settings.sourceNameList;
+		this.oldSourceName2FilePath = this.settings.sourceName2FilePath;
 
-		this.sourceName2FilePath = {};
-		this.sourceNameList = [];
+		this.settings.sourceName2FilePath = {};
+		this.settings.sourceNameList = [];
 
-		if (!(await this.app.vault.adapter.exists(this.settings.sourcePath)))
-			return;
+		const tfiles: TFile[] =
+			await fopt.getMarkdownFilesFromFolderRecursively(
+				this.settings.sourcePath
+			);
 
-		const sourceFiles: string[] = [];
-		await fopt.listAllFile(this.settings.sourcePath, sourceFiles);
-
-		for (const filePath of sourceFiles) {
-			const content = await this.app.vault.adapter.read(filePath);
+		for (const tfile of tfiles) {
+			const content = await this.app.vault.cachedRead(tfile);
 
 			const allCodeblockName = content.match(RE.reCodeBlockName4Source);
 			if (allCodeblockName == null) return;
 			for (const cbname of allCodeblockName) {
-				this.sourceName2FilePath[cbname] = filePath;
-				this.sourceNameList.push(cbname);
+				this.settings.sourceName2FilePath[cbname] = tfile.path;
+				this.settings.sourceNameList.push(cbname);
 			}
 		}
+		this.saveSettings();
 	}
 
 	async getTemplContent(viewName: string, source: string) {
-		const converter = new V2SConverter(this.app, this.sourceName2FilePath);
+		const converter = new V2SConverter(
+			this.app,
+			this.settings.sourceName2FilePath
+		);
 
 		// __________________提取Key和Value__________________
 		const keys: string[] = [];
-		const data_obj: ValueData = {};
-		const words = source.split("\n").filter((word) => word.length > 0);
-		for (const w of words) {
-			let [key, value] = w.split("="); // 数组解构
+		const data_obj: UserValueData = {};
+		const statementList = source
+			.split("\n")
+			.filter((word) => word.length > 0);
+		for (const statement of statementList) {
+			let [key, value] = statement.split("="); // 数组解构
+
+			if (value == undefined) continue;
 
 			key = key.trim();
 			value = value.trim();
-
-			// 去掉value首尾引号
-			if (value.startsWith('"') && value.endsWith('"')) {
-				value = value.slice(1, value.length - 1);
-			}
 
 			value = StrOpt.removeConvertChar(value);
 
@@ -201,17 +194,17 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 	}
 
 	async renderAll() {
-		if (this.sourceNameList.length != 0)
-			for (const sourceName of this.sourceNameList) {
-				if (this.cbInfos[sourceName] != undefined) {
-					const cbInfoItem = this.cbInfos[sourceName];
+		if (this.settings.sourceNameList.length != 0)
+			for (const sourceName of this.settings.sourceNameList) {
+				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
+				if (cbInfoItem) {
 					this.render(sourceName, cbInfoItem.source, cbInfoItem.path);
 				}
 			}
 		else if (this.oldSourceNameList.length != 0)
 			for (const sourceName of this.oldSourceNameList) {
-				if (this.cbInfos[sourceName] != undefined) {
-					const cbInfoItem = this.cbInfos[sourceName];
+				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
+				if (cbInfoItem) {
 					this.render2TemplContent(
 						sourceName,
 						undefined,

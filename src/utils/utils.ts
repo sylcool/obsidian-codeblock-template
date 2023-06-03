@@ -1,6 +1,5 @@
-import { App, Notice, TFile } from "obsidian";
-import { Name2Path } from "src/model/ReflexModel";
-import { ValueData } from "src/model/ValueData";
+import { App, Notice, TFile, TFolder, Vault } from "obsidian";
+import { Name2Path, UserValueData } from "src/model/ReflexModel";
 
 export class V2SConverter {
 	app: App;
@@ -18,7 +17,7 @@ export class V2SConverter {
 	async getSourceContentOfCBName(
 		viewName: string,
 		keys: string[],
-		values: ValueData
+		values: UserValueData
 	) {
 		// ___________________定位到文件，并读取内容___________________
 		const filePath = this.codeName2Path[viewName];
@@ -36,25 +35,33 @@ export class V2SConverter {
 		const cbPrefix = content.match(RE.getReCodeBlockPrefix(viewName))?.[0];
 		if (cbPrefix == null) return undefined;
 
-		const completionCodeBlock = content.match(
-			RE.getReCompletionCodeBlock(cbPrefix)
+		const completeCodeBlock = content.match(
+			RE.getRecompleteCodeBlock(cbPrefix)
 		)?.[0];
-		if (completionCodeBlock == undefined) {
+		if (completeCodeBlock == undefined) {
 			new Notice("Pack-Source prefix formation invalid！");
 			return undefined;
 		}
 
-		const contentOfCodeBlock = completionCodeBlock.match(
-			RE.getReCodeBlockContent(cbPrefix)
-		)?.[0];
+		const contentOfCodeBlock =
+			StrOpt.getCodeBlockContent(completeCodeBlock);
+
 		if (contentOfCodeBlock == undefined) {
 			new Notice("Pack-Source content formation invalid！");
 			return undefined;
 		}
 
+		if (keys.length == 0) {
+			console.log("No variables are used!");
+			return contentOfCodeBlock;
+		}
+
 		const needReplaceList = contentOfCodeBlock?.match(RE.reNeedReplaceStr);
 		if (needReplaceList == null) {
-			console.log("There are no variables to replace！");
+			new Notice("Replace invalid！More info in console.");
+			console.log(
+				"The passed-in variable name does not match the variable name in the template"
+			);
 			return contentOfCodeBlock;
 		}
 
@@ -62,7 +69,8 @@ export class V2SConverter {
 		for (const nrStr of needReplaceList) {
 			const varName = nrStr.match(RE.reVariableName)?.[0];
 			if (varName == null) {
-				new Notice("Source Variable name invalid！");
+				new Notice("Replace invalid！More info in console.");
+				new Notice("Source variable name invalid！");
 				continue;
 			}
 
@@ -82,6 +90,7 @@ export class V2SConverter {
 	}
 }
 
+// 文件操作类
 export class FileOpt {
 	app: App;
 
@@ -89,40 +98,27 @@ export class FileOpt {
 		this.app = app;
 	}
 
-	async listAllFile(sourcePath: string, mdPaths: string[]) {
-		const dir = await this.app.vault.adapter.list(sourcePath);
-		for (const folderPath of dir.folders) {
-			if (
-				folderPath.indexOf("./.obsidian/") != -1 ||
-				folderPath.indexOf("./.trash/") != -1
-			)
-				continue; // 忽略.obsidian和.trash文件夹
-			this.listAllFile(folderPath, mdPaths);
+	async getMarkdownFilesFromFolderRecursively(sourcePath: string) {
+		// 遍历获取文件夹下所有md文件
+		const folder = this.app.vault.getAbstractFileByPath(sourcePath);
+		const result: TFile[] = [];
+		if (folder instanceof TFolder) {
+			Vault.recurseChildren(folder, (file) => {
+				if (file instanceof TFile && file.extension === "md") {
+					result.push(file);
+				}
+			});
 		}
-		for (const filePath of dir.files) {
-			if (filePath.indexOf(".md") != -1) mdPaths.push(filePath);
-		}
-	}
-
-	async findMarkdomName(input: string, mdPaths: string[]) {
-		const dir = await this.app.vault.adapter.list(".");
-		for (const folderPath of dir.folders) {
-			if (
-				folderPath.indexOf("./.obsidian/") != -1 ||
-				folderPath.indexOf("./.trash/") != -1 ||
-				folderPath.indexOf(input) != -1
-			)
-				continue; // 忽略.obsidian和.trash文件夹
-			this.findMarkdomName(folderPath, mdPaths);
-		}
-		for (const filePath of dir.files) {
-			if (filePath.indexOf(".md") != -1) mdPaths.push(filePath);
-		}
+		return result;
 	}
 }
 
 export class StrOpt {
+	// 去掉value首尾引号，转义字符转换
 	static removeConvertChar(str: string) {
+		if (str.startsWith('"') && str.endsWith('"')) {
+			str = str.slice(1, str.length - 1);
+		}
 		return str
 			.replaceAll('\\"', '"')
 			.replaceAll("\\'", "'")
@@ -135,6 +131,10 @@ export class StrOpt {
 			.replaceAll("\\0", "\0")
 			.replaceAll("\\\\", "\\");
 	}
+
+	static getCodeBlockContent(completeCodeBlock: string) {
+		return completeCodeBlock.split("\n").slice(1, -1).join("\n");
+	}
 }
 
 export class RE {
@@ -144,7 +144,7 @@ export class RE {
 	static readonly reCodeBlockPrefix4View =
 		/[`]{3,9}pack-source[\s]*[a-zA-Z_][\w]*\n/g;
 
-	// 匹配CodeBlock前缀（name）
+	// 匹配定义模板的CodeBlock前缀（name）
 	static readonly reCodeBlockName4Source =
 		/(?<=`{3,9}pack-source[\s]*)[a-zA-Z_][\w]*/g;
 	static readonly reCodeBlockName4View =
@@ -154,7 +154,8 @@ export class RE {
 	static readonly reNeedReplaceStr = /\$\.\{[\s\S]*?\}/g;
 
 	// 匹配变量名（varName）
-	static readonly reVariableName = /(?<=\$\.\{\s*)[_a-zA-Z]\w*(?=\s*\})/g;
+	// static readonly reVariableName = /(?<=\$\.\{\s*)[_a-zA-Z]\w*(?=\s*\})/g;
+	static readonly reVariableName = /(?<=\$\.\{\s*)[_a-zA-Z]\w*/g;
 
 	// 正则检测变量名
 	static readonly variableSynatx = /^[_a-zA-Z]\w*$/;
@@ -162,7 +163,7 @@ export class RE {
 	// 匹配转义字符
 	static readonly conChar = /(\\\\)+[a-zA-Z]?/g;
 
-	static getReCompletionCodeBlock(prefix: string) {
+	static getRecompleteCodeBlock(prefix: string) {
 		let count = 0;
 
 		while (prefix[++count] == "`") {}
@@ -170,19 +171,20 @@ export class RE {
 		return new RegExp(prefix + "[\\s\\S]*?`{" + count + "}", "g");
 	}
 
-	static getReCodeBlockContent(prefix: string) {
-		let count = 0;
-		while (prefix[++count] == "`") {}
+	// IOS不支持后行断言
+	// static getReCodeBlockContent(prefix: string) {
+	// 	let count = 0;
+	// 	while (prefix[++count] == "`") {}
 
-		return new RegExp(
-			"(?<=[`]{" +
-				count +
-				"}pack-source[\\s]*[_a-zA-Z][\\w]*\\n)[\\s\\S]*?(?=\\n`{" +
-				count +
-				"})",
-			"g"
-		);
-	}
+	// 	return new RegExp(
+	// 		"(?<=[`]{" +
+	// 			count +
+	// 			"}pack-source[\\s]*[_a-zA-Z][\\w]*\\n)[\\s\\S]*?(?=\\n`{" +
+	// 			count +
+	// 			"})",
+	// 		"g"
+	// 	);
+	// }
 
 	static getReCodeBlockPrefix(viewName: string) {
 		return new RegExp("[`]{3,9}pack-source[\\s]*" + viewName + "\\n", "g");

@@ -1,15 +1,16 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import CodeBlockTemplatePlugin from "src/main";
-import { Key2List } from "src/model/ViewMesModel";
 
 export interface CodeBlockTemplatePluginSettings {
 	sourcePath: string;
-	viewCodeBlockInfos: Key2List;
+	sourceNameList: string[];
+	sourceName2FilePath: { [key: string]: string };
 }
 
 export const DEFAULT_SETTINGS: CodeBlockTemplatePluginSettings = {
 	sourcePath: "templates",
-	viewCodeBlockInfos: {},
+	sourceNameList: [],
+	sourceName2FilePath: {},
 };
 
 export class CodeBlockTemplateSettingTab extends PluginSettingTab {
