@@ -8,7 +8,7 @@ A template plugin that reuses the content of Code Block!
 
 This plugin has not been uploaded to the Obsidian plugin repository yet, so you need to install it manually.
 
-1. Download `main.js` and `manifest.json` via **release** latest on the right. 2.
+1. Download `main.js` and `manifest.json` via **release** latest on the right.
 2. Create a new folder `codeblock-template` in your plugin directory (.obsidian/plugins) and put the main.js and manifes.json files into this folder.
 
 ## Use
