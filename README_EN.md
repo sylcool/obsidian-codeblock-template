@@ -60,7 +60,33 @@ name = "Super10"
 ```
 ````
 
-![image3](./assets/image3.png)
+![image-20230604144149583](./assets/image-20230604144149583.png)
+
+#### Anonymous Variable
+
+The prefix of anonymous variables can be customized by setting the default to `anonymous_var_`。
+
+**Note**: For storage purposes, the key should conform to the identifier definition rule [^1].
+
+**Create templates**
+
+````markdown
+```pack-source test_anonymous
+| 1                   | 2                   | 3                   | 4                   | 5                   |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| $.{anonymous_var_0} | $.{anonymous_var_1} | $.{anonymous_var_2} | $.{anonymous_var_3} | $.{anonymous_var_4} |
+```
+````
+
+**Using Templates**
+
+````markdown
+```pack-view test_anonymous
+value0,value1,value2,value4,....
+```
+````
+
+![image-20230604144109428](./assets/image-20230604144109428.png)
 
 ## Use with other plugins
 
@@ -87,7 +113,7 @@ due after $.{date}
 
 ## Next stage
 
--   [ ] Multiple anonymous variables
+-   [x] Multiple anonymous variables
 -   [ ] Can read local `.csv .json` file data
 
 [^1]: identifiers can consist of three types of characters: letters, underscores, and numbers; identifiers can only start with letters or underscores

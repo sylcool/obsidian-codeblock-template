@@ -59,7 +59,31 @@ name = "Super10"
 ```
 ````
 
-![image3](./assets/image3.png)
+![image-20230604144149583](./assets/image-20230604144149583.png)
+
+#### 匿名变量
+
+匿名变量的前缀支持通过设置自定义，默认是“anonymous*var*”。**注意：为了方便存储，key 要符合标识符定义规则**[^1]
+
+定义模板
+
+````markdown
+```pack-source test_anonymous
+| 1                   | 2                   | 3                   | 4                   | 5                   |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| $.{anonymous_var_0} | $.{anonymous_var_1} | $.{anonymous_var_2} | $.{anonymous_var_3} | $.{anonymous_var_4} |
+```
+````
+
+使用模板
+
+````markdown
+```pack-view test_anonymous
+value0,value1,value2,value4,....
+```
+````
+
+![image-20230604144109428](./assets/image-20230604144109428.png)
 
 ## 配合其他插件使用
 
@@ -86,7 +110,7 @@ due after $.{date}
 
 ## 预计开发
 
--   [ ] 批量变量传入
+-   [x] 批量变量传入
 -   [ ] 读取本地 JSON、CSV 数据
 
 [^1]: 标识符可由三类字符：字母、下划线、数字组成；标识符只能由字母或下划线开头

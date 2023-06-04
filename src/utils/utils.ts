@@ -1,17 +1,31 @@
-import { App, Notice, TFile, TFolder, Vault } from "obsidian";
+import {
+	App,
+	MarkdownPostProcessorContext,
+	Notice,
+	TFile,
+	TFolder,
+	Vault,
+} from "obsidian";
+import CodeBlockTemplatePlugin from "src/main";
 import { Name2Path, UserValueData } from "src/model/ReflexModel";
 
 export class V2SConverter {
-	app: App;
-	codeName2Path: Name2Path;
+	private app: App;
+	private codeName2Path: Name2Path;
+	private static instance: V2SConverter;
 
-	constructor(app: App, codeName2Path: Name2Path) {
+	private constructor(app: App, codeName2Path: Name2Path) {
 		this.app = app;
 		this.codeName2Path = codeName2Path;
 	}
 
-	updateCodeName2Path(codeName2Path: Name2Path) {
-		this.codeName2Path = codeName2Path;
+	static getV2SConverter(app: App, codeName2Path: Name2Path) {
+		if (V2SConverter.instance == undefined) {
+			V2SConverter.instance = new V2SConverter(app, codeName2Path);
+		} else {
+			V2SConverter.instance.codeName2Path = codeName2Path;
+		}
+		return V2SConverter.instance;
 	}
 
 	async getSourceContentOfCBName(
@@ -56,7 +70,9 @@ export class V2SConverter {
 			return contentOfCodeBlock;
 		}
 
-		const needReplaceList = contentOfCodeBlock?.match(RE.reNeedReplaceStr);
+		const needReplaceList = Array.from(
+			new Set(contentOfCodeBlock.match(RE.reNeedReplaceStr))
+		);
 		if (needReplaceList == null) {
 			new Notice("Replace invalid！More info in console.");
 			console.log(
@@ -75,10 +91,7 @@ export class V2SConverter {
 			}
 
 			if (keys.includes(varName)) {
-				contentTempl = contentOfCodeBlock.replaceAll(
-					nrStr,
-					values[varName]
-				);
+				contentTempl = contentTempl.replaceAll(nrStr, values[varName]);
 			} else {
 				new Notice("Replace invalid！More info in console.");
 				console.log(
@@ -116,7 +129,14 @@ export class FileOpt {
 export class StrOpt {
 	// 去掉value首尾引号，转义字符转换
 	static removeConvertChar(str: string) {
-		if (str.startsWith('"') && str.endsWith('"')) {
+		while (RE.endsWithPunctuation.test(str)) {
+			// 去掉尾部标点符号
+			str = str.slice(0, str.length - 1);
+		}
+		if (
+			(str.startsWith('"') && str.endsWith('"')) ||
+			(str.startsWith("'") && str.endsWith("'"))
+		) {
 			str = str.slice(1, str.length - 1);
 		}
 		return str
@@ -160,8 +180,10 @@ export class RE {
 	// 正则检测变量名
 	static readonly variableSynatx = /^[_a-zA-Z]\w*$/;
 
-	// 匹配转义字符
-	static readonly conChar = /(\\\\)+[a-zA-Z]?/g;
+	static readonly endsWithPunctuation = /["'][,;，；.。]+$/g;
+
+	// 无效分隔符
+	// static readonly invalidSeparator = /[,，]/g;
 
 	static getRecompleteCodeBlock(prefix: string) {
 		let count = 0;
@@ -188,5 +210,146 @@ export class RE {
 
 	static getReCodeBlockPrefix(viewName: string) {
 		return new RegExp("[`]{3,9}pack-source[\\s]*" + viewName + "\\n", "g");
+	}
+}
+
+export class CodeBlockProcessor {
+	private plugin: CodeBlockTemplatePlugin;
+	private static instance: CodeBlockProcessor;
+
+	private constructor() {}
+
+	static getCodeBlockProcessor(plugin: CodeBlockTemplatePlugin) {
+		if (CodeBlockProcessor.instance == undefined) {
+			CodeBlockProcessor.instance = new CodeBlockProcessor();
+			CodeBlockProcessor.instance.plugin = plugin;
+		}
+		return CodeBlockProcessor.instance;
+	}
+
+	// 从CodeBlock中提取变量名和变量值
+	VariableExtractOfView(content: string) {
+		const statementList = content
+			.split("\n")
+			.filter((word) => word.length > 0);
+
+		const keys: string[] = [];
+		const data_obj: UserValueData = {};
+		const anonymousValues: string[] = [];
+
+		for (const statement of statementList) {
+			let finished = false;
+			if (statement.indexOf("=") != -1) {
+				finished = this.extrackDisplayVariable(
+					statement,
+					keys,
+					data_obj
+				);
+			}
+			if (statement.indexOf(",") != -1 && !finished) {
+				finished = this.extrackAnonymousVariable(
+					statement,
+					anonymousValues
+				);
+			}
+
+			if (!finished) console.log("Input variable formation invalid！");
+		}
+
+		for (const index in anonymousValues) {
+			keys.push(this.plugin.settings.anonymousVariableNamePrefix + index);
+			data_obj[this.plugin.settings.anonymousVariableNamePrefix + index] =
+				anonymousValues[index];
+		}
+
+		return { keys, data_obj };
+	}
+
+	extrackDisplayVariable(
+		statement: string,
+		keys: string[],
+		data_obj: UserValueData
+	) {
+		const separatorPos = statement.indexOf("=");
+		let key = statement.slice(0, separatorPos).trim();
+		let value = statement.slice(separatorPos + 1).trim();
+
+		// let [key, value] = statement.split("="); // 数组解构, 可能一个语句有多个等号
+
+		if (typeof key != typeof value && !RE.variableSynatx.test(key)) {
+			console.log("Input variable formation invalid！");
+			return false;
+		}
+		value = StrOpt.removeConvertChar(value);
+
+		data_obj[key] = value;
+		keys.push(key);
+		return true;
+	}
+
+	extrackAnonymousVariable(statement: string, values: string[]) {
+		let finished = false;
+		let lastSeparatorPos = 0;
+
+		let dQouteMarkStart = -1;
+		let sQouteMarkStart = -1;
+
+		for (let pos = 0; pos < statement.length; pos++) {
+			switch (statement[pos]) {
+				case '"':
+					if (dQouteMarkStart == -1) dQouteMarkStart = pos;
+					else dQouteMarkStart = -1;
+					break;
+				case "'":
+					if (dQouteMarkStart == -1) dQouteMarkStart = pos;
+					else dQouteMarkStart = -1;
+					break;
+
+				default:
+					break;
+			}
+
+			if (sQouteMarkStart != -1 || dQouteMarkStart != -1) {
+				continue;
+			} else {
+				if (statement[pos] == ",") {
+					let value = statement.slice(lastSeparatorPos, pos).trim();
+					value = StrOpt.removeConvertChar(value);
+					values.push(value);
+					lastSeparatorPos = pos + 1;
+					finished = true;
+				} else if (pos == statement.length - 1) {
+					let value = statement.slice(lastSeparatorPos).trim();
+					value = StrOpt.removeConvertChar(value);
+					values.push(value);
+				}
+			}
+		}
+
+		if (!finished) {
+		}
+
+		return finished;
+	}
+
+	getTemplContent(viewName: string, source: string) {
+		const converter = V2SConverter.getV2SConverter(
+			this.plugin.app,
+			this.plugin.settings.sourceName2FilePath
+		);
+
+		// __________________提取Key和Value__________________
+		const { keys, data_obj } = this.VariableExtractOfView(source);
+
+		return converter.getSourceContentOfCBName(viewName, keys, data_obj);
+	}
+
+	getCodeBlockName(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
+		const cbInfo = ctx.getSectionInfo(el);
+		const viewName = cbInfo?.text
+			.split("\n")
+			[cbInfo.lineStart].match(RE.reCodeBlockName4View)?.[0];
+
+		return viewName;
 	}
 }

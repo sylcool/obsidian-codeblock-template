@@ -1,12 +1,6 @@
-import {
-	MarkdownPostProcessorContext,
-	MarkdownRenderer,
-	Notice,
-	Plugin,
-	TFile,
-} from "obsidian";
-import { FileOpt, StrOpt, V2SConverter } from "./utils/utils";
-import { Name2Path, UserValueData } from "./model/ReflexModel";
+import { MarkdownRenderer, Notice, Plugin, TFile } from "obsidian";
+import { CodeBlockProcessor, FileOpt } from "./utils/utils";
+import { Name2Path } from "./model/ReflexModel";
 import { RE } from "./utils/utils";
 import {
 	DEFAULT_SETTINGS,
@@ -23,13 +17,17 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 	oldSourceNameList: string[] = [];
 	oldSourceName2FilePath: Name2Path = {};
 
+	codeblockProcessor: CodeBlockProcessor;
+
 	async onload() {
 		await this.loadSettings();
 
 		this.addSettingTab(new CodeBlockTemplateSettingTab(this.app, this));
 
+		this.codeblockProcessor =
+			CodeBlockProcessor.getCodeBlockProcessor(this);
+
 		this.app.workspace.onLayoutReady(async () => {
-			// __________________初始化__________________
 			if (this.settings.sourceNameList.length == 0) {
 				await this.getSourceName2FilePath();
 				this.renderAll();
@@ -40,7 +38,10 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 			"pack-view",
 			(source, el, ctx) => {
 				// __________________获取viewName__________________
-				const viewName = this.getCodeBlockName(ctx, el);
+				const viewName = this.codeblockProcessor.getCodeBlockName(
+					ctx,
+					el
+				);
 				if (viewName == undefined) return;
 
 				// __________________将TemplContent渲染到页面__________________
@@ -62,7 +63,10 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 			async (source, el, ctx) => {
 				el.createEl("pre").createEl("code", { text: source });
 				await this.getSourceName2FilePath();
-				const sourceName = this.getCodeBlockName(ctx, el);
+				const sourceName = this.codeblockProcessor.getCodeBlockName(
+					ctx,
+					el
+				);
 				if (sourceName == undefined) return;
 
 				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
@@ -125,47 +129,7 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 		this.saveSettings();
 	}
 
-	async getTemplContent(viewName: string, source: string) {
-		const converter = new V2SConverter(
-			this.app,
-			this.settings.sourceName2FilePath
-		);
-
-		// __________________提取Key和Value__________________
-		const keys: string[] = [];
-		const data_obj: UserValueData = {};
-		const statementList = source
-			.split("\n")
-			.filter((word) => word.length > 0);
-		for (const statement of statementList) {
-			let [key, value] = statement.split("="); // 数组解构
-
-			if (value == undefined) continue;
-
-			key = key.trim();
-			value = value.trim();
-
-			value = StrOpt.removeConvertChar(value);
-
-			if (typeof key != typeof value || !RE.variableSynatx.test(key)) {
-				new Notice(
-					"Data formation invalid！Maybe the variable name is not in the right format. "
-				);
-				return;
-			}
-
-			data_obj[key] = value;
-			keys.push(key);
-		}
-
-		return await converter.getSourceContentOfCBName(
-			viewName,
-			keys,
-			data_obj
-		);
-	}
-
-	render2TemplContent(
+	renderFromTemplContent(
 		viewName: string,
 		templContent: string | undefined,
 		path: string
@@ -188,9 +152,12 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 	}
 
 	async render(viewName: string, source: string, path: string) {
-		const templContent = await this.getTemplContent(viewName, source);
+		const templContent = await this.codeblockProcessor.getTemplContent(
+			viewName,
+			source
+		);
 
-		this.render2TemplContent(viewName, templContent, path);
+		this.renderFromTemplContent(viewName, templContent, path);
 	}
 
 	async renderAll() {
@@ -205,21 +172,12 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 			for (const sourceName of this.oldSourceNameList) {
 				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
 				if (cbInfoItem) {
-					this.render2TemplContent(
+					this.renderFromTemplContent(
 						sourceName,
 						undefined,
 						cbInfoItem.path
 					);
 				}
 			}
-	}
-
-	getCodeBlockName(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
-		const cbInfo = ctx.getSectionInfo(el);
-		const viewName = cbInfo?.text
-			.split("\n")
-			[cbInfo.lineStart].match(RE.reCodeBlockName4View)?.[0];
-
-		return viewName;
 	}
 }
