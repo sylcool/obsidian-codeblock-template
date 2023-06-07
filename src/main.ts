@@ -1,101 +1,97 @@
-import { MarkdownRenderer, Notice, Plugin, TFile } from "obsidian";
-import { CodeBlockProcessor, FileOpt } from "./utils/utils";
-import { Name2Path } from "./model/ReflexModel";
-import { RE } from "./utils/utils";
+import type { TFile } from 'obsidian'
+import { MarkdownRenderer, Notice, Plugin } from 'obsidian'
+import { CodeBlockProcessor, FileOpt, RE, ViewManager } from './utils/utils'
+import type { CodeBlockTemplatePluginSettings } from './settings/CodeBlockTemplateSetTab'
 import {
-	DEFAULT_SETTINGS,
-	CodeBlockTemplatePluginSettings,
-	CodeBlockTemplateSettingTab,
-} from "./settings/CodeBlockTemplateSetTab";
-import { Key2List } from "./model/ViewMesModel";
+  CodeBlockTemplateSettingTab,
+  DEFAULT_SETTINGS,
+} from './settings/CodeBlockTemplateSetTab'
 
 export default class CodeBlockTemplatePlugin extends Plugin {
-	settings: CodeBlockTemplatePluginSettings;
+  settings: CodeBlockTemplatePluginSettings
+  codeblockProcessor: CodeBlockProcessor
+  viewManager: ViewManager
 
-	viewCodeBlockInfos: Key2List = {};
+  isInit = false;
 
-	oldSourceNameList: string[] = [];
-	oldSourceName2FilePath: Name2Path = {};
+  async onload() {
+    await this.loadSettings()
 
-	codeblockProcessor: CodeBlockProcessor;
+    this.viewManager = ViewManager.getViewManager()
+    this.codeblockProcessor = CodeBlockProcessor.getCodeBlockProcessor(this)
 
-	async onload() {
-		await this.loadSettings();
+    this.addSettingTab(new CodeBlockTemplateSettingTab(this.app, this))
 
-		this.addSettingTab(new CodeBlockTemplateSettingTab(this.app, this));
 
-		this.codeblockProcessor =
-			CodeBlockProcessor.getCodeBlockProcessor(this);
+    this.app.workspace.onLayoutReady(async () => {
+      this.isInit = true;
+      if (this.settings.sourceNameList.length === 0)
+        await this.getSourceName2FilePath()
+      const viewNames = this.viewManager.getAllNames()
+      for (const name of viewNames){
+        this.render4Name(name)
+      }
+    })
 
-		this.app.workspace.onLayoutReady(async () => {
-			if (this.settings.sourceNameList.length == 0) {
-				await this.getSourceName2FilePath();
-				this.renderAll();
-			}
-		});
+    this.registerMarkdownCodeBlockProcessor(
+      'pack-view',
+      (source, el, ctx) => {
+        // __________________获取viewName__________________
+        const viewName = this.codeblockProcessor.getCodeBlockIdentifier(ctx,el)
+        if (viewName === undefined) return;
 
-		this.registerMarkdownCodeBlockProcessor(
-			"pack-view",
-			(source, el, ctx) => {
-				// __________________获取viewName__________________
-				const viewName = this.codeblockProcessor.getCodeBlockName(
-					ctx,
-					el
-				);
-				if (viewName == undefined) return;
+        // __________________将TemplContent渲染到页面__________________
+          // 每个view都加上class和no属性
 
-				// __________________将TemplContent渲染到页面__________________
-				// 设置el的id，用于重新渲染
-				el.className = "pack-view-" + viewName;
+        const viewID = ctx.getSectionInfo(el)?.lineStart.toString() ?? "A";
 
-				// 保存CodeBlock信息
-				this.viewCodeBlockInfos[viewName] = {
-					source: source,
-					path: ctx.sourcePath,
-				};
+        
+        el.addClass(viewName, `pack-view-${viewName}-${viewID}`);
 
-				this.render(viewName, source, ctx.sourcePath);
-			}
-		);
+        // 会在第二个view加载时，el还没被渲染，第一个view所以会因为无法获取el而被删除。通过添加isInit判断，可以避免这个问题
+        if(this.isInit && !this.viewManager.getIDList4Name(viewName).contains(viewID)) this.viewManager.deleteInvalidId(viewName);
+        
+        this.viewManager.updateView(viewName, viewID, {
+          input: source,
+          viewPath: ctx.sourcePath,
+        })
+        
 
-		this.registerMarkdownCodeBlockProcessor(
-			"pack-source",
-			async (source, el, ctx) => {
-				el.createEl("pre").createEl("code", { text: source });
-				await this.getSourceName2FilePath();
-				const sourceName = this.codeblockProcessor.getCodeBlockName(
-					ctx,
-					el
-				);
-				if (sourceName == undefined) return;
+        if(this.isInit) this.render4ID(viewName, viewID, source, ctx.sourcePath);
+      },
+    )
 
-				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
+    this.registerMarkdownCodeBlockProcessor(
+      'pack-source',
+      async (source, el, ctx) => {
+        el.createEl('pre').createEl('code', { text: source })
+        await this.getSourceName2FilePath()
+        const sourceName = this.codeblockProcessor.getCodeBlockIdentifier(ctx,el)
+        if (sourceName === undefined) return;
+        this.render4Name(sourceName)
+      },
+    )
 
-				if (cbInfoItem)
-					this.render(sourceName, cbInfoItem.source, cbInfoItem.path);
-			}
-		);
+    if (this.settings.sourcePath === '')
+      new Notice('CodeBlockTemplate Plugin：Source Path is undefined！')
+  }
 
-		if (this.settings.sourcePath === "")
-			new Notice("CodeBlockTemplate Plugin：Source Path is undefined！");
-	}
+  onunload() {}
 
-	onunload() {}
+  async loadSettings() {
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      await this.loadData(),
+    )
+  }
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
-		);
-	}
+  async saveSettings() {
+    await this.saveData(this.settings)
+  }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-
-	async getSourceName2FilePath() {
-		/**
+  async getSourceName2FilePath() {
+    /**
 		 * 功能：
 		 * 1. 获取模板名称到文件路径的对应关系，方便查找模板文件，避免每次查找都遍历Source Path下的所有文件
 		 * 2. 获取最新的模板列表，判断使用的模板是否已经定义
@@ -103,81 +99,93 @@ export default class CodeBlockTemplatePlugin extends Plugin {
 		 * 更新sourceName2FilePath、sourceNameList
 		 */
 
-		const fopt = new FileOpt(this.app);
+    const fopt = new FileOpt(this.app)
 
-		this.oldSourceNameList = this.settings.sourceNameList;
-		this.oldSourceName2FilePath = this.settings.sourceName2FilePath;
+    let isUpdated = false;
 
-		this.settings.sourceName2FilePath = {};
-		this.settings.sourceNameList = [];
+    const tfiles: TFile[]
+			= await fopt.getMarkdownFilesFromFolderRecursively(
+          this.settings.sourcePath,
+			)
 
-		const tfiles: TFile[] =
-			await fopt.getMarkdownFilesFromFolderRecursively(
-				this.settings.sourcePath
-			);
+    for (const tfile of tfiles) {
+      const content = await this.app.vault.cachedRead(tfile)
 
-		for (const tfile of tfiles) {
-			const content = await this.app.vault.cachedRead(tfile);
+      const allCodeblockName = content.match(RE.reCodeBlockName4Source)
+      if (allCodeblockName == null)
+        return
 
-			const allCodeblockName = content.match(RE.reCodeBlockName4Source);
-			if (allCodeblockName == null) return;
-			for (const cbname of allCodeblockName) {
-				this.settings.sourceName2FilePath[cbname] = tfile.path;
-				this.settings.sourceNameList.push(cbname);
-			}
-		}
-		this.saveSettings();
-	}
+      if(!isUpdated) {
+        this.settings.oldValidSourcePath = this.settings.sourcePath;
 
-	renderFromTemplContent(
-		viewName: string,
-		templContent: string | undefined,
-		path: string
-	) {
-		const els = document.getElementsByClassName("pack-view-" + viewName);
-		for (let index = 0; index < els.length; index++) {
-			const el = els[index] as HTMLElement;
+        this.settings.sourceName2FilePath = {}
+        this.settings.sourceNameList = []
 
-			if (el == null) {
-				return;
-			}
+        console.log("Codeblock Template：Source path is updated！sourceName2FilePath and sourceNameList are updated")
 
-			el.empty();
-			if (templContent != undefined) {
-				MarkdownRenderer.renderMarkdown(templContent, el, path, this);
-			} else {
-				MarkdownRenderer.renderMarkdown("", el, path, this);
-			}
-		}
-	}
+        isUpdated = true;
+      }
+      for (const cbname of allCodeblockName) {
+        this.settings.sourceName2FilePath[cbname] = tfile.path
+        this.settings.sourceNameList.push(cbname)
+      }
+    }
+    if(!isUpdated) {
+      this.settings.sourcePath = this.settings.oldValidSourcePath;
+    }
+    this.saveSettings()
+  }
 
-	async render(viewName: string, source: string, path: string) {
-		const templContent = await this.codeblockProcessor.getTemplContent(
-			viewName,
-			source
-		);
+  render(cls: string, template:string|undefined, viewPath:string) {
+    const els = document.getElementsByClassName(cls);
+    for (let index = 0; index < els.length; index++) {
+      const el = els[index] as HTMLElement
+      if (el == null) return;
+      el.empty()
+      if (template !== undefined) {
+        MarkdownRenderer.renderMarkdown(template,el,viewPath,this);
+      }else{
+        MarkdownRenderer.renderMarkdown('Codeblock Template：Template is not defined!',el,viewPath,this);
+      }
+      
+    }
+  }
 
-		this.renderFromTemplContent(viewName, templContent, path);
-	}
+  async render4Name(name: string, isEmpty = false) {
+    const vkeys = Object.keys(this.viewManager.getViews4Name(name));
+    const allViews = this.viewManager.getViews4Name(name)
 
-	async renderAll() {
-		if (this.settings.sourceNameList.length != 0)
-			for (const sourceName of this.settings.sourceNameList) {
-				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
-				if (cbInfoItem) {
-					this.render(sourceName, cbInfoItem.source, cbInfoItem.path);
-				}
-			}
-		else if (this.oldSourceNameList.length != 0)
-			for (const sourceName of this.oldSourceNameList) {
-				const cbInfoItem = this.viewCodeBlockInfos[sourceName];
-				if (cbInfoItem) {
-					this.renderFromTemplContent(
-						sourceName,
-						undefined,
-						cbInfoItem.path
-					);
-				}
-			}
-	}
+    for (const key of vkeys) {
+      const cls = this.viewManager.getClassNameList4Name(name, key)
+      const view = allViews[key];
+      let templContent;
+      if(!isEmpty) templContent = await this.codeblockProcessor.getTemplContent(name,view.input)
+      this.render(cls, templContent, view.viewPath)
+    }
+  }
+
+  async render4ID(
+    viewName: string,
+    elID: string,
+    input: string,
+    path: string,
+  ) {
+    const templContent = await this.codeblockProcessor.getTemplContent(viewName,input)
+    this.render(`pack-view-${viewName}-${elID}`, templContent, path)
+  }
+
+  async renderAll(reflexUpdate = true) {
+    if (reflexUpdate) // 不需要更新SourceNameList
+      await this.getSourceName2FilePath()
+    const sourceNameList = this.settings.sourceNameList;
+    const invalidViews = this.viewManager.getAllNames().filter(viewName => !sourceNameList.contains(viewName));
+
+    for (const name of sourceNameList){
+      this.render4Name(name)
+    }
+
+    for(const name of invalidViews){
+      this.render4Name(name, true)
+    }
+  }
 }

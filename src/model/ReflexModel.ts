@@ -1,6 +1,6 @@
 export interface Name2Path {
-	[key: string]: string;
+  [key: string]: string
 }
 export interface UserValueData {
-	[key: string]: any;
+  [key: string]: string
 }

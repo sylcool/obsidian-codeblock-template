@@ -1,8 +1,10 @@
-interface CodeBlockPostViewInfo {
-	source: string;
-	path: string;
+export interface CodeBlockPostViewInfo {
+  input: string
+  viewPath: string
 }
 
 export interface Key2List {
-	[viewName: string]: CodeBlockPostViewInfo;
+  [viewName: string]: { 
+    [id: string]: CodeBlockPostViewInfo 
+  }
 }
