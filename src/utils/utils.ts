@@ -35,7 +35,7 @@ export class V2SConverter {
     // ___________________定位到文件，并读取内容___________________
     const filePath = this.codeName2Path[viewName]
     if (filePath == undefined) {
-      new Notice('Pack-View name invalid！')
+      new Notice(`The ${viewName} template has not been defined. `)
       return undefined
     }
 
@@ -89,7 +89,7 @@ export class V2SConverter {
       const varName = nrStr.match(RE.reVariableName)?.[0]
       if (varName == null) {
         new Notice('Replace invalid！More info in console.')
-        new Notice('Source variable name invalid！')
+        console.log('Replace invalid：Source variable name invalid！Please check whether the variable name is valid.')
         continue
       }
 

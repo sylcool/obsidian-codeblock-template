@@ -1,5 +1,5 @@
 import type { TFile } from 'obsidian'
-import { MarkdownRenderer, Notice, Plugin } from 'obsidian'
+import { MarkdownRenderer, Plugin } from 'obsidian'
 import { CodeBlockProcessor, FileOpt, RE, ViewManager } from './utils/utils'
 import type { CodeBlockTemplatePluginSettings } from './settings/CodeBlockTemplateSetTab'
 import {
@@ -72,8 +72,6 @@ export default class CodeBlockTemplatePlugin extends Plugin {
       },
     )
 
-    if (this.settings.sourcePath === '')
-      new Notice('CodeBlockTemplate Plugin：Source Path is undefined！')
   }
 
   onunload() {}

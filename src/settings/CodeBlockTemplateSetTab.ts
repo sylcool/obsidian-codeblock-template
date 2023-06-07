@@ -34,13 +34,13 @@ export class CodeBlockTemplateSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Template source path')
-      .setDesc('Default Path /templates')
+      .setDesc('Default Path /templates. If the input path is invalid, the last valid path will be used automatically.')
       .addText((cp) => {
         cp.setPlaceholder('Input Source Path')
           .setValue(this.plugin.settings.sourcePath)
           .onChange(async (text) => {
             if (text == '') {
-              new Notice('CodeBlockTemplate-Plugin：Source Path is undefined！This will cause the plugin not to work.')
+              new Notice('CodeBlockTemplate-Plugin：Source Path is null！This will cause the plugin not to work.')
               this.plugin.settings.sourcePath = 'templates'
             }else{
               this.plugin.settings.sourcePath = text
