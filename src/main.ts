@@ -17,6 +17,8 @@ export default class CodeBlockTemplatePlugin extends Plugin {
   async onload() {
     await this.loadSettings()
 
+    
+
     this.viewManager = ViewManager.getViewManager()
     this.codeblockProcessor = CodeBlockProcessor.getCodeBlockProcessor(this)
 
@@ -43,21 +45,21 @@ export default class CodeBlockTemplatePlugin extends Plugin {
         // __________________将TemplContent渲染到页面__________________
           // 每个view都加上class和no属性
 
-        const viewID = ctx.getSectionInfo(el)?.lineStart.toString() ?? "A";
-
+        // 通过文件和行号创建唯一的viewID
+        const viewId = this.viewManager.createID(this.app.workspace.getActiveFile(), ctx.getSectionInfo(el)?.lineStart.toString() ?? "error")
         
-        el.addClass(viewName, `pack-view-${viewName}-${viewID}`);
+        el.addClass(viewName, `pack-view-${viewName}-${viewId}`);
 
         // 会在第二个view加载时，el还没被渲染，第一个view所以会因为无法获取el而被删除。通过添加isInit判断，可以避免这个问题
-        if(this.isInit && !this.viewManager.getIDList4Name(viewName).contains(viewID)) this.viewManager.deleteInvalidId(viewName);
+        if(this.isInit && !this.viewManager.getIDList4Name(viewName).contains(viewId)) this.viewManager.deleteInvalidId(viewName);
         
-        this.viewManager.updateView(viewName, viewID, {
+        this.viewManager.updateView(viewName, viewId, {
           input: source,
           viewPath: ctx.sourcePath,
         })
         
 
-        if(this.isInit) this.render4ID(viewName, viewID, source, ctx.sourcePath);
+        if(this.isInit) this.render4ID(viewName, viewId, source, ctx.sourcePath);
       },
     )
 

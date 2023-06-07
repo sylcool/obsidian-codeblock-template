@@ -11,6 +11,7 @@ import {
 import type CodeBlockTemplatePlugin from 'src/main'
 import type { Name2Path, UserValueData } from 'src/model/ReflexModel'
 import type { CodeBlockPostViewInfo, Key2List } from 'src/model/ViewMesModel'
+import {Md5} from 'ts-md5';
 
 export class V2SConverter {
   private app: App
@@ -405,6 +406,12 @@ export class ViewManager {
   getIDList4Name(viewName: string) {
     // 第一次还未初始化
     return Object.keys(this.name2View[viewName] ?? {}) 
+  }
+
+  createID(tfile: TFile|null, line:string){
+    const text = tfile?.path + line + tfile?.name;
+    const completionMD5 = new Md5().appendStr(text).end() as string;
+    return completionMD5.slice(0, 8)
   }
 
 
