@@ -4,6 +4,7 @@
 
 一个可以把 Code Block 的内容重复利用模板插件！
 
+
 ## 安装
 
 目前这个插件还没上传到 Obsidian 插件库，还需要手动安装。
@@ -51,19 +52,28 @@ Hello $.{name}！
 ```
 ````
 
-通过`key = value`或`key = "value"`来定义变量。**注意：为了方便存储，key 要符合标识符定义规则[^1]**
+通过`key = value`或`key = "value"`来定义变量。模板可以重复利用。
+**注意：为了方便存储，key 要符合标识符定义规则[^1]**
 
 ````markdown
 ```pack-view test1
 name = "Super10"
 ```
+
+---
+
+```pack-view test1
+name = "Sylcool"
+```
 ````
 
-![image-20230604144149583](./assets/image-20230604144149583.png)
+![image.png](./assets/Snipaste_2023-06-07_12-55-53.png)
+
 
 #### 匿名变量
 
-匿名变量的前缀支持通过设置自定义，默认是“anonymous*var*”。**注意：为了方便存储，key 要符合标识符定义规则**[^1]
+匿名变量的前缀支持通过设置自定义，默认是`anonymous_var_`。
+**注意：为了方便存储，key 要符合标识符定义规则**[^1]
 
 定义模板
 

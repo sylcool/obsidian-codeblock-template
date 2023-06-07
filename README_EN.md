@@ -51,16 +51,23 @@ Hello $.{name}!
 ```
 ````
 
-Define variables by `key = value` or `key = "value"`.
+Define variables by `key = value` or `key = "value"`. The template can be reused multiple times.
 **Note**: For storage purposes, the key should conform to the identifier definition rule [^1].
 
 ````markdown
 ```pack-view test1
 name = "Super10"
 ```
+
+---
+
+```pack-view test1
+name = "Sylcool"
+```
 ````
 
-![image-20230604144149583](./assets/image-20230604144149583.png)
+
+![image.png](./assets/Snipaste_2023-06-07_12-55-53.png)
 
 #### Anonymous Variable
 
