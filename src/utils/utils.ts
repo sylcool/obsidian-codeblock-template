@@ -95,7 +95,19 @@ export class V2SConverter {
       }
 
       if (keys.includes(varName)) {
-        contentTempl = contentTempl.replaceAll(nrStr, values[varName])
+        if(values[varName].startsWith('[') && values[varName].endsWith(']')) {
+          console.log(contentTempl)
+          const aline = contentTempl.match(new RegExp(`.*?\\$\\.\\{${varName}\\}.*[\n]?`))?.[0] ?? "";
+          console.log(aline)
+          let loopContent = ""
+          const list = values[varName].slice(1, values[varName].length - 1).split(',');
+          for(const value of list) {
+            loopContent += aline?.replaceAll(nrStr, value) + "\n"
+          }
+          contentTempl = contentTempl.replaceAll(aline, loopContent)
+        }else{
+          contentTempl = contentTempl.replaceAll(nrStr, values[varName])
+        }
       }
       else {
         new Notice('Replace invalid！More info in console.')
@@ -261,6 +273,7 @@ export class CodeBlockProcessor {
 
       if (!finished)
         console.log('Input variable formation invalid！')
+      
     }
 
     for (const index in anonymousValues) {
@@ -289,6 +302,8 @@ export class CodeBlockProcessor {
     }
     value = StrOpt.removeConvertChar(value)
 
+
+
     data_obj[key] = value
     keys.push(key)
     return true
@@ -302,6 +317,7 @@ export class CodeBlockProcessor {
     let sQouteMarkStart = -1
 
     for (let pos = 0; pos < statement.length; pos++) {
+      // 判断该逗号是否在引号中，在则不拆分
       switch (statement[pos]) {
         case '"':
           if (dQouteMarkStart == -1)
