@@ -2,8 +2,10 @@
 
 [简体中文](./README.md)|[English](./README_EN.md)
 
-一个可以把 Code Block 的内容重复利用模板插件！
-
+一个可以把 Code Block 的内容在任何笔记中重复利用Obsidian模板插件！
+- [x] [模板变量](#插值)：可根据传入的变量改变模板内容。
+- [x] [批量匿名变量](#匿名变量)：可传入批量以`,`分隔的值，避免为过多变量取名。
+- [x] [array循环变量](#循环变量)：值为`[1,2,3,4]`的array类型，可循环显示该行的内容。
 
 ## 安装
 
@@ -94,6 +96,24 @@ value0,value1,value2,value4,....
 ````
 
 ![image-20230604144109428](./assets/image-20230604144109428.png)
+
+#### 循环变量
+定义
+````markdown
+```pack-source test_loop
+List：
+1. $.{a}
+```
+````
+
+使用
+````markdown
+```pack-view test_loop
+a = [A,B,C,D]
+```
+````
+![Loop View](./assets/loop.png)
+
 
 ## 配合其他插件使用
 

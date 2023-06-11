@@ -2,7 +2,11 @@
 
 [简体中文](./README.md)|[English](./README_EN.md)
 
-A template plugin that reuses the content of Code Block!
+An Obsidian template plugin that can reuse the content of a Code Block in any note!
+
+- [x] [Template Variables](#interpolation): you can change the template content according to the variables passed in.
+- [x] [bulk anonymous variables](#anonymous-variable): Bulk `,`-separated values can be passed in to avoid naming too many variables.
+- [x] [array loop variable](#Array): array type with value `[1,2,3,4]` that can loop through the contents of the row.
 
 ## Install
 
@@ -94,6 +98,23 @@ value0,value1,value2,value4,....
 ````
 
 ![image-20230604144109428](./assets/image-20230604144109428.png)
+
+#### Array
+**Create templates**
+````markdown
+```pack-source test_loop
+List：
+1. $.{a}
+```
+````
+
+**Using Templates**
+````markdown
+```pack-view test_loop
+a = [A,B,C,D]
+```
+````
+![Loop View](./assets/loop.png)
 
 ## Use with other plugins
 
