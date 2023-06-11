@@ -96,13 +96,17 @@ export class V2SConverter {
 
       if (keys.includes(varName)) {
         if(values[varName].startsWith('[') && values[varName].endsWith(']')) {
-          console.log(contentTempl)
           const aline = contentTempl.match(new RegExp(`.*?\\$\\.\\{${varName}\\}.*[\n]?`))?.[0] ?? "";
-          console.log(aline)
+          if(aline == "") continue;
           let loopContent = ""
           const list = values[varName].slice(1, values[varName].length - 1).split(',');
           for(const value of list) {
-            loopContent += aline?.replaceAll(nrStr, value) + "\n"
+            if(aline.startsWith(">")){
+              loopContent += aline?.replaceAll(nrStr, value)
+            }else{
+              loopContent += aline?.replaceAll(nrStr, value) + "\n"
+            }
+            console.log(loopContent)
           }
           contentTempl = contentTempl.replaceAll(aline, loopContent)
         }else{
@@ -315,6 +319,7 @@ export class CodeBlockProcessor {
 
     let dQouteMarkStart = -1
     let sQouteMarkStart = -1
+    let middleBracketStart = -1
 
     for (let pos = 0; pos < statement.length; pos++) {
       // 判断该逗号是否在引号中，在则不拆分
@@ -329,12 +334,17 @@ export class CodeBlockProcessor {
             sQouteMarkStart = pos
           else sQouteMarkStart = -1
           break
-
+        case '[':
+          middleBracketStart = pos
+          break
+        case ']':
+          middleBracketStart = -1
+          break
         default:
           break
       }
 
-      if (sQouteMarkStart != -1 || dQouteMarkStart != -1) {
+      if (sQouteMarkStart != -1 || dQouteMarkStart != -1 || middleBracketStart != -1) {
         continue
       }
       else {
