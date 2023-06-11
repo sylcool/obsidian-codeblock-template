@@ -5,7 +5,7 @@
 An Obsidian template plugin that can reuse the content of a Code Block in any note!
 
 - [x] [Template Variables](#interpolation): you can change the template content according to the variables passed in.
-- [x] [bulk anonymous variables](#anonymous-variable): Bulk `,`-separated values can be passed in to avoid naming too many variables.
+- [x] [bulk anonymous variables](#anonymous-variable): multiple values separated by `,` can be passed in to avoid naming too many variables. (CSV-like syntax)
 - [x] [array loop variable](#Array): array type with value `[1,2,3,4]` that can loop through the contents of the row.
 
 ## Install
