@@ -299,7 +299,7 @@ export class CodeBlockProcessor {
     let lastSeparatorPos = 0
 
     let dQouteMarkStart = -1
-    const sQouteMarkStart = -1
+    let sQouteMarkStart = -1
 
     for (let pos = 0; pos < statement.length; pos++) {
       switch (statement[pos]) {
@@ -309,9 +309,9 @@ export class CodeBlockProcessor {
           else dQouteMarkStart = -1
           break
         case '\'':
-          if (dQouteMarkStart == -1)
-            dQouteMarkStart = pos
-          else dQouteMarkStart = -1
+          if (sQouteMarkStart == -1)
+            sQouteMarkStart = pos
+          else sQouteMarkStart = -1
           break
 
         default:
