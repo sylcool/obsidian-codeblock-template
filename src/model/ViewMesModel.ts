@@ -3,7 +3,7 @@ export interface CodeBlockPostViewInfo {
   viewPath: string
 }
 
-export interface Key2List {
+export interface ViewName2CodeBlockPostViewInfos {
   [viewName: string]: { 
     [id: string]: CodeBlockPostViewInfo 
   }

@@ -1,30 +1,23 @@
 import type { App } from 'obsidian'
 import { Notice, PluginSettingTab, Setting } from 'obsidian'
+import SettingsProxy from 'src/proxy/SettingsProxy'
 import type CodeBlockTemplatePlugin from 'src/main'
-import { RE } from 'src/utils/utils'
-
-export interface CodeBlockTemplatePluginSettings {
-  sourcePath: string
-  oldValidSourcePath: string
-  sourceNameList: string[]
-  sourceName2FilePath: { [key: string]: string }
-  anonymousVariableNamePrefix: string
-}
-
-export const DEFAULT_SETTINGS: CodeBlockTemplatePluginSettings = {
-  sourcePath: 'templates',
-  oldValidSourcePath: 'templates',
-  sourceNameList: [],
-  sourceName2FilePath: {},
-  anonymousVariableNamePrefix: 'anonymous_var_',
-}
+import { RE } from 'src/utils/ObsidianUtils'
+import {SuggestionRender} from 'src/render/SuggestionRender'
+import { TemplateLayoutRender } from 'src/render/TemplateLayoutRender'
 
 export class CodeBlockTemplateSettingTab extends PluginSettingTab {
   plugin: CodeBlockTemplatePlugin
+  settingProxy: SettingsProxy
+  suggestionRender: SuggestionRender
+  templateRender: TemplateLayoutRender
 
   constructor(app: App, plugin: CodeBlockTemplatePlugin) {
     super(app, plugin)
     this.plugin = plugin
+    this.settingProxy = SettingsProxy.getSettingsProxy(plugin)
+    this.suggestionRender = SuggestionRender.getSuggestionRender(plugin)
+    this.templateRender = TemplateLayoutRender.getTemplateLayoutRender(plugin)
   }
 
   async display() {
@@ -41,12 +34,15 @@ export class CodeBlockTemplateSettingTab extends PluginSettingTab {
           .onChange(async (text) => {
             if (text == '') {
               new Notice('CodeBlockTemplate-Plugin：Source Path is null！This will cause the plugin not to work.')
-              this.plugin.settings.sourcePath = 'templates'
-            }else{
-              this.plugin.settings.sourcePath = text
+              // this.plugin.settings.sourcePath = 'templates'
+              text = 'templates'
             }
+            this.settingProxy.updateSettings('sourcePath', text, () => {
+              this.suggestionRender.refreshAllSourceVariable()
+              this.templateRender.getSourceName2FilePath()
+            })
             await this.plugin.saveSettings()
-            this.plugin.renderAll()
+            
           })
       })
 
@@ -61,13 +57,14 @@ export class CodeBlockTemplateSettingTab extends PluginSettingTab {
           .onChange(async (text) => {
             if (!RE.variableSynatx.test(text)) {
               new Notice('CodeBlockTemplate-Plugin：Prefix is invalid！The prefix should conform to the identifier definition rule.')
-              this.plugin.settings.anonymousVariableNamePrefix = 'anonymous_var_'
+              // this.plugin.settings.anonymousVariableNamePrefix = 'anonymous_var_'
+              text = "anonymous_var_"
             }
-            else {
-              this.plugin.settings.anonymousVariableNamePrefix = text
-            }
+            this.settingProxy.updateSettings('anonymousVariableNamePrefix', text, ()=>{
+              this.suggestionRender.refreshAllSourceVariable()
+            })
             await this.plugin.saveSettings()
-            this.plugin.renderAll(false)
+            this.templateRender.renderAll()
           })
       })
   }

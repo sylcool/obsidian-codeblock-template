@@ -1,6 +1,5 @@
 import type {
   App,
-  MarkdownPostProcessorContext,
 } from 'obsidian'
 import {
   Notice,
@@ -8,10 +7,7 @@ import {
   TFolder,
   Vault,
 } from 'obsidian'
-import type CodeBlockTemplatePlugin from 'src/main'
 import type { Name2Path, UserValueData } from 'src/model/ReflexModel'
-import type { CodeBlockPostViewInfo, Key2List } from 'src/model/ViewMesModel'
-import {Md5} from 'ts-md5';
 
 export class V2SConverter {
   private app: App
@@ -144,6 +140,18 @@ export class FileOpt {
     }
     return result
   }
+
+  async getAllCodeBlocks(file: TFile) {
+    const content = await this.app.vault.cachedRead(file)
+    const prefixs = content.match(RE.reCodeBlockPrefix4Source)
+    const codeBlocks: string[] = [];
+
+    prefixs?.forEach((prefix) => {
+      codeBlocks.push(content.match(RE.getRecompleteCodeBlock(prefix))?.[0] ?? "")
+    })
+
+    return codeBlocks;
+  }
 }
 
 export class StrOpt {
@@ -189,6 +197,7 @@ export class RE {
   static readonly reCodeBlockName4Source
     = /(?<=`{3,9}pack-source[\s]*)[a-zA-Z_][\w]*/g
 
+  // 匹配使用模板的CodeBlock前缀（name）
   static readonly reCodeBlockName4View
     = /(?<=`{3,9}pack-view[\s]*)[a-zA-Z_][\w]*/g
 
@@ -207,10 +216,11 @@ export class RE {
   // 无效分隔符
   // static readonly invalidSeparator = /[,，]/g;
 
+  // 匹配完整的CodeBlock（prefix为```pack-source name)
   static getRecompleteCodeBlock(prefix: string) {
     let count = 0
 
-    while (prefix[++count] == '`') { /* empty */ }
+    while (prefix[++count] === '`') { /* empty */ }
 
     return new RegExp(`${prefix}[\\s\\S]*?\`{${count}}`, 'g')
   }
@@ -235,221 +245,4 @@ export class RE {
   }
 }
 
-export class CodeBlockProcessor {
-  private plugin: CodeBlockTemplatePlugin
-  private static instance: CodeBlockProcessor
 
-  private constructor() {}
-
-  static getCodeBlockProcessor(plugin: CodeBlockTemplatePlugin) {
-    if (CodeBlockProcessor.instance == undefined) {
-      CodeBlockProcessor.instance = new CodeBlockProcessor()
-      CodeBlockProcessor.instance.plugin = plugin
-    }
-    return CodeBlockProcessor.instance
-  }
-
-  // 从CodeBlock中提取变量名和变量值
-  VariableExtractOfView(content: string) {
-    const statementList = content
-      .split('\n')
-      .filter(word => word.length > 0)
-
-    const keys: string[] = []
-    const data_obj: UserValueData = {}
-    const anonymousValues: string[] = []
-
-    for (const statement of statementList) {
-      let finished = false
-      if (statement.includes('=')) {
-        finished = this.extrackDisplayVariable(
-          statement,
-          keys,
-          data_obj,
-        )
-      }
-      if (statement.includes(',') && !finished) {
-        finished = this.extrackAnonymousVariable(
-          statement,
-          anonymousValues,
-        )
-      }
-
-      if (!finished)
-        console.log('Input variable formation invalid！')
-      
-    }
-
-    for (const index in anonymousValues) {
-      keys.push(this.plugin.settings.anonymousVariableNamePrefix + index)
-      data_obj[this.plugin.settings.anonymousVariableNamePrefix + index]
-				= anonymousValues[index]
-    }
-
-    return { keys, data_obj }
-  }
-
-  extrackDisplayVariable(
-    statement: string,
-    keys: string[],
-    data_obj: UserValueData,
-  ) {
-    const separatorPos = statement.indexOf('=')
-    const key = statement.slice(0, separatorPos).trim()
-    let value = statement.slice(separatorPos + 1).trim()
-
-    // let [key, value] = statement.split("="); //【x】 数组解构, 可能出现一个语句有多个等号情况
-
-    if (typeof key != typeof value && !RE.variableSynatx.test(key)) {
-      console.log('Input variable formation invalid！')
-      return false
-    }
-    value = StrOpt.removeConvertChar(value)
-
-
-
-    data_obj[key] = value
-    keys.push(key)
-    return true
-  }
-
-  extrackAnonymousVariable(statement: string, values: string[]) {
-    let finished = false
-    let lastSeparatorPos = 0
-
-    let dQouteMarkStart = -1
-    let sQouteMarkStart = -1
-    let middleBracketStart = -1
-
-    for (let pos = 0; pos < statement.length; pos++) {
-      // 判断该逗号是否在引号中，在则不拆分
-      switch (statement[pos]) {
-        case '"':
-          if (dQouteMarkStart == -1)
-            dQouteMarkStart = pos
-          else dQouteMarkStart = -1
-          break
-        case '\'':
-          if (sQouteMarkStart == -1)
-            sQouteMarkStart = pos
-          else sQouteMarkStart = -1
-          break
-        case '[':
-          middleBracketStart = pos
-          break
-        case ']':
-          middleBracketStart = -1
-          break
-        default:
-          break
-      }
-
-      if (sQouteMarkStart != -1 || dQouteMarkStart != -1 || middleBracketStart != -1) {
-        continue
-      }
-      else {
-        if (statement[pos] == ',') {
-          let value = statement.slice(lastSeparatorPos, pos).trim()
-          value = StrOpt.removeConvertChar(value)
-          values.push(value)
-          lastSeparatorPos = pos + 1
-          finished = true
-        }
-        else if (pos == statement.length - 1) {
-          let value = statement.slice(lastSeparatorPos).trim()
-          value = StrOpt.removeConvertChar(value)
-          values.push(value)
-        }
-      }
-    }
-
-    return finished
-  }
-
-  async getTemplContent(viewName: string, source: string) {
-    const converter = V2SConverter.getV2SConverter(
-      this.plugin.app,
-      this.plugin.settings.sourceName2FilePath,
-    )
-
-    // __________________提取Key和Value__________________
-    const { keys, data_obj } = this.VariableExtractOfView(source)
-
-    const template = await converter.getSourceContentOfCBName(viewName)
-    if(template == undefined) return undefined;
-
-    return converter.insertVariable(template, keys,data_obj);
-  }
-
-  getCodeBlockIdentifier(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
-    const cbInfo = ctx.getSectionInfo(el)
-    const viewName = cbInfo?.text
-      .split('\n')[cbInfo.lineStart].match(RE.reCodeBlockName4View)?.[0]
-    return viewName
-  }
-}
-
-export class ViewManager {
-  private name2View: Key2List;
-  private static instance: ViewManager;
-
-  private constructor() {
-    this.name2View = {}
-  }
-
-  static getViewManager() {
-    if (ViewManager.instance == undefined){
-      ViewManager.instance = new ViewManager()
-    }
-
-    return ViewManager.instance
-  }
-
-  updateView(viewName: string, id: string, info: CodeBlockPostViewInfo) {
-    if (this.name2View[viewName] == undefined)
-      this.name2View[viewName] = {}
-    this.name2View[viewName][id] = info
-
-  }
-
-  getClassNameList4Name(viewName: string, elID: string) {
-    return `pack-view-${viewName}-${elID}`
-  }
-
-
-  getView4ID(viewName: string, id: string) {
-    return this.name2View[viewName][id]
-  }
-
-  getViews4Name(viewName: string) {
-    return this.name2View[viewName] ?? {}
-  }
-
-  getAllNames() {
-    return Object.keys(this.name2View)
-  }
-
-  getIDList4Name(viewName: string) {
-    // 第一次还未初始化
-    return Object.keys(this.name2View[viewName] ?? {}) 
-  }
-
-  createID(tfile: TFile|null, line:string){
-    const text = tfile?.path + line + tfile?.name;
-    const completionMD5 = new Md5().appendStr(text).end() as string;
-    return completionMD5.slice(0, 8)
-  }
-
-
-
-  deleteInvalidId(viewName:string){
-    const ids = this.getIDList4Name(viewName)
-    for(const id of ids){
-      const el = document.getElementsByClassName("pack-view-"+viewName+"-"+ id)[0];
-      if(el === undefined){
-        delete this.name2View[viewName][id]
-        console.log("delete invalid id: "+id, this.name2View[viewName])
-      }
-    }
-  }
-}
