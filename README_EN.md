@@ -4,9 +4,10 @@
 
 An Obsidian template plugin that can reuse the content of a Code Block in any note!
 
-- [x] [Template Variables](#interpolation): you can change the template content according to the variables passed in.
-- [x] [bulk anonymous variables](#anonymous-variable): multiple values separated by `,` can be passed in to avoid naming too many variables. (CSV-like syntax)
-- [x] [array loop variable](#Array): array type with value `[1,2,3,4]` that can loop through the contents of the row.
+- [x] [Template Variables](#interpolation): you can change the template content according to the variables passed in. —— June 4, 2023
+- [x] [bulk anonymous variables](#anonymous-variable): multiple values separated by `,` can be passed in to avoid naming too many variables. (CSV-like syntax) —— June 6, 2023
+- [x] [array loop variable](#Array): array type with value `[1,2,3,4]` that can loop through the contents of the row. —— June 12, 2023
+- [x] Input Tip: enter `...` or **\`\`\`pack-view** where you need to insert the template, and press the space to automatically complete the complete template. —— June 14, 2023
 
 ## Install
 
@@ -141,7 +142,6 @@ due after $.{date}
 
 ## Next stage
 
--   [x] Multiple anonymous variables
 -   [ ] Can read local `.csv .json` file data
 
 [^1]: identifiers can consist of three types of characters: letters, underscores, and numbers; identifiers can only start with letters or underscores
