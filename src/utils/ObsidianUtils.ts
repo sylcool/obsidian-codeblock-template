@@ -188,18 +188,18 @@ export class StrOpt {
 export class RE {
   // 匹配CodeBlock前缀（```pack-source name）
   static readonly reCodeBlockPrefix4Source
-    = /[`]{3,9}pack-source[\s]*[a-zA-Z_][\w]*\n/g
+    = /[`]{3,}pack-source[\s]*[a-zA-Z_][\w]*\n/g
 
   static readonly reCodeBlockPrefix4View
-    = /[`]{3,9}pack-source[\s]*[a-zA-Z_][\w]*\n/g
+    = /[`]{3,}pack-source[\s]*[a-zA-Z_][\w]*\n/g
 
-  // 匹配定义模板的CodeBlock前缀（name）
+  // 从source前缀中匹配sourceName
   static readonly reCodeBlockName4Source
-    = /(?<=`{3,9}pack-source[\s]*)[a-zA-Z_][\w]*/g
+    = /(?<=`{3,}pack-source[\s]*)[a-zA-Z_][\w]*/g
 
-  // 匹配使用模板的CodeBlock前缀（name）
+  // 从view前缀中匹配viewName
   static readonly reCodeBlockName4View
-    = /(?<=`{3,9}pack-view[\s]*)[a-zA-Z_][\w]*/g
+    = /(?<=`{3,}pack-view[\s]*)[a-zA-Z_][\w]*/g
 
   // 匹配需要替换的字符串（$.{varName}）
   static readonly reNeedReplaceStr = /\$\.\{[\s\S]*?\}/g

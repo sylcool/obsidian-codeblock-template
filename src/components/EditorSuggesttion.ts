@@ -7,6 +7,8 @@ export class ViewSuggestion extends EditorSuggest<string> {
   private _plugin: CodeBlockTemplatePlugin;
   private _settingsManager: SettingsManager
 
+  private _isAll = true;
+
   constructor(plugin: CodeBlockTemplatePlugin) {
     super(plugin.app)
     this._plugin = plugin;
@@ -14,9 +16,7 @@ export class ViewSuggestion extends EditorSuggest<string> {
   }
 
   onTrigger(cursor: EditorPosition, editor: Editor, file: TFile | null): EditorSuggestTriggerInfo | null {
-    // throw new Error("Method not implemented.");
-    console.log("onTrigger",editor.getLine(cursor.line))
-    if(editor.getLine(cursor.line).match(/.*pack-view[ ]{1}.*/) || editor.getLine(cursor.line).match(/\.{3}/)){
+    if(editor.getLine(cursor.line).match(/^`*pack-view .*$/gm) || editor.getLine(cursor.line).match(/^(\.\.\.)/gm)){
       return {
         end: cursor,
         start: cursor,
@@ -27,24 +27,25 @@ export class ViewSuggestion extends EditorSuggest<string> {
     }
   }
   getSuggestions(context: EditorSuggestContext): string[] | Promise<string[]> {
-    // throw new Error("Method not implemented.");
     // 返回值用于渲染提示列表
-    console.log("getSuggestion")
-
-    return this._settingsManager.getSuggestion4All();
+    if(context.editor.getLine(context.start.line).trim() === "..."){
+      this._isAll = true;
+      return this._settingsManager.getSuggestion4All();
+    }else{
+      this._isAll = false;
+      return this._settingsManager.getSuggestion4Input(context.query.trim())
+    }
   }
   renderSuggestion(value: string, el: HTMLElement): void {
-    // throw new Error("Method not implemented.");
-    console.log("renderSuggestion:", value)
     const container = el.createDiv({text: value})
     container.addClass("pack-view-suggestion-container")
+
   }
   
   selectSuggestion(value: string, evt: MouseEvent | KeyboardEvent): void {
-    // throw new Error("Method not implemented.");
     // eslint-disable-next-line prefer-const
     let {template, coursor} = this._settingsManager.getViewTemplate(value, this.context?.start.line ?? 0);
-    if(this.context?.editor.getLine(this.context?.start.line).match(/`*pack-view .*/)){
+    if(!this._isAll){
       template = template.slice(0, template.lastIndexOf("\n"))
     }
     this.context?.editor.setLine(this.context.end.line, template)
