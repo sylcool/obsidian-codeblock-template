@@ -76,16 +76,10 @@ export default class CodeBlockTemplatePlugin extends Plugin {
         await this.templateRender.getSourceName2FilePath()
         const sourceName = this.sourceManager.getCodeBlockIdentifier(ctx,el)
         if (sourceName === undefined) return;
-        this.templateRender.render4Name(sourceName)
+        this.templateRender.render4Name(sourceName);
+        this.suggestionRender.refreshAllSourceVariable();
       },
     )
-
-    this.app.workspace.on("editor-change",(editor, info)=>{
-      const cursor = editor.getCursor();
-      if(RegExp("^([\\.]{3,})$").test(editor.getLine(cursor.line))){
-        
-      }
-    })
 
   }
 
