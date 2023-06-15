@@ -102,7 +102,6 @@ export class V2SConverter {
             }else{
               loopContent += aline?.replaceAll(nrStr, value) + "\n"
             }
-            console.log(loopContent)
           }
           contentTempl = contentTempl.replaceAll(aline, loopContent)
         }else{

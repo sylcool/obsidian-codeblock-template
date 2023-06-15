@@ -45,7 +45,7 @@ export default class CodeBlockTemplatePlugin extends Plugin {
       'pack-view',
       (source, el, ctx) => {
         // __________________获取viewName__________________
-        const viewName = this.sourceManager.getCodeBlockIdentifier(ctx,el)
+        const viewName = this.sourceManager.getCodeBlockIdentifier4View(ctx,el)
         if (viewName === undefined) return;
 
         // __________________将TemplContent渲染到页面__________________
@@ -74,7 +74,7 @@ export default class CodeBlockTemplatePlugin extends Plugin {
       async (source, el, ctx) => {
         el.createEl('pre').createEl('code', { text: source })
         await this.templateRender.getSourceName2FilePath()
-        const sourceName = this.sourceManager.getCodeBlockIdentifier(ctx,el)
+        const sourceName = this.sourceManager.getCodeBlockIdentifier4Source(ctx,el)
         if (sourceName === undefined) return;
         this.templateRender.render4Name(sourceName);
         this.suggestionRender.refreshAllSourceVariable();

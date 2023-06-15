@@ -11,11 +11,11 @@ export class TemplateLayoutRender{
   private _viewManager: ViewManager
   private _sourceManager: SourceManager
 
-  private constructor(_plugin: CodeBlockTemplatePlugin){
-    this._plugin = _plugin;
-    this._fileOpt = new FileOpt(_plugin.app)
+  private constructor(plugin: CodeBlockTemplatePlugin){
+    this._plugin = plugin;
+    this._fileOpt = new FileOpt(plugin.app)
     this._viewManager = ViewManager.getViewManager()
-    this._sourceManager = SourceManager.getSourceManager(_plugin)
+    this._sourceManager = SourceManager.getSourceManager(plugin)
   }
 
   public static getTemplateLayoutRender(_plugin: CodeBlockTemplatePlugin){
@@ -33,12 +33,10 @@ export class TemplateLayoutRender{
 		 * 更新sourceName2FilePath、sourceNameList
 		 */
 
-    const fileOpt = new FileOpt(this._plugin.app)
-
     let isUpdated = false;
 
     const tfiles: TFile[]
-			= await fileOpt.getMarkdownFilesFromFolderRecursively(
+			= await this._fileOpt.getMarkdownFilesFromFolderRecursively(
           this._plugin.settings.sourcePath,
 			)
 
@@ -55,7 +53,7 @@ export class TemplateLayoutRender{
         this._plugin.settings.sourceName2FilePath = {}
         this._plugin.settings.sourceNameList = []
 
-        console.log("Codeblock Template：Source path is updated！sourceName2FilePath and sourceNameList are updated")
+        console.log("Codeblock Template：Source is updated！sourceName2FilePath and sourceNameList are updated")
 
         isUpdated = true;
       }
@@ -66,10 +64,9 @@ export class TemplateLayoutRender{
     }
     if(!isUpdated) {
       this._plugin.settings.sourcePath = this._plugin.settings.oldValidSourcePath;
+      this.renderAll();
     }
     this._plugin.saveSettings()
-
-    this.renderAll();
   }
 
   render(cls: string, template:string|undefined, viewPath:string) {

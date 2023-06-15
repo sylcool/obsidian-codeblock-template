@@ -4,20 +4,20 @@ import { UserValueData } from "src/model/ReflexModel"
 import { RE, StrOpt, V2SConverter } from "src/utils/ObsidianUtils"
 
 export class SourceManager {
-  private static instance: SourceManager
+  private static _instance: SourceManager
   
-  private plugin: CodeBlockTemplatePlugin
+  private _plugin: CodeBlockTemplatePlugin
 
 
-  private constructor() {
+  private constructor(plugin: CodeBlockTemplatePlugin) {
+    this._plugin = plugin
   }
 
   static getSourceManager(plugin: CodeBlockTemplatePlugin) {
-    if (SourceManager.instance == undefined) {
-      SourceManager.instance = new SourceManager()
-      SourceManager.instance.plugin = plugin
+    if (SourceManager._instance === undefined) {
+      SourceManager._instance = new SourceManager(plugin)
     }
-    return SourceManager.instance
+    return SourceManager._instance
   }
 
   // 从CodeBlock中提取变量名和变量值
@@ -52,8 +52,8 @@ export class SourceManager {
     }
 
     for (const index in anonymousValues) {
-      keys.push(this.plugin.settings.anonymousVariableNamePrefix + index)
-      data_obj[this.plugin.settings.anonymousVariableNamePrefix + index]
+      keys.push(this._plugin.settings.anonymousVariableNamePrefix + index)
+      data_obj[this._plugin.settings.anonymousVariableNamePrefix + index]
 				= anonymousValues[index]
     }
 
@@ -139,8 +139,8 @@ export class SourceManager {
 
   async getTemplContent(viewName: string, source: string) {
     const converter = V2SConverter.getV2SConverter(
-      this.plugin.app,
-      this.plugin.settings.sourceName2FilePath,
+      this._plugin.app,
+      this._plugin.settings.sourceName2FilePath,
     )
 
     // __________________提取Key和Value__________________
@@ -152,10 +152,17 @@ export class SourceManager {
     return converter.insertVariable(template, keys,data_obj);
   }
 
-  getCodeBlockIdentifier(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
+  getCodeBlockIdentifier4View(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
     const cbInfo = ctx.getSectionInfo(el)
     const viewName = cbInfo?.text
-      .split('\n')[cbInfo.lineStart].match(RE.reCodeBlockName4View)?.[0]
+    .split('\n')[cbInfo.lineStart].match(RE.reCodeBlockName4View)?.[0]
     return viewName
+  }
+
+  getCodeBlockIdentifier4Source(ctx: MarkdownPostProcessorContext, el: HTMLElement) {
+    const cbInfo = ctx.getSectionInfo(el)
+    const sourceName = cbInfo?.text
+    .split('\n')[cbInfo.lineStart].match(RE.reCodeBlockName4Source)?.[0]
+    return sourceName
   }
 }
