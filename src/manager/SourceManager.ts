@@ -29,8 +29,28 @@ export class SourceManager {
     const keys: string[] = []
     const data_obj: UserValueData = {}
     const anonymousValues: string[] = []
+    // 实现多行值
+    let multiStartPos = 0;
+    let isMulti = false;
+    let multiLine = "";
 
-    for (const statement of statementList) {
+    for (let statement of statementList) {
+      
+      if(statement.indexOf("{%") !== -1){
+        multiLine = statement;
+        multiStartPos = content.indexOf("{%", multiStartPos);
+        isMulti = true;
+        continue;
+      }
+      
+      if(statement.indexOf("%}") !== -1){
+        isMulti = false;
+        statement = multiLine.replace("{%", content.slice(multiStartPos+2, content.indexOf("%}", multiStartPos)));
+        multiStartPos = content.indexOf("%}", multiStartPos);
+      }
+      
+      if(isMulti) continue;
+      
       let finished = false
       if (statement.includes('=')) {
         finished = this.extrackDisplayVariable(
@@ -75,6 +95,8 @@ export class SourceManager {
       console.log('Input variable formation invalid！')
       return false
     }
+    console.log(key, value)
+
     value = StrOpt.removeConvertChar(value)
 
 

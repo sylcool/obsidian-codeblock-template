@@ -39,7 +39,7 @@ export class SettingsManager{
       if(coursor === undefined){
         coursor = {line: line+1, ch: variable.length+3}
       }
-      template += variable + " =  \n"
+      template += variable + " = \n"
     }
     template += "```"
     return {template, coursor};
