@@ -116,6 +116,33 @@ a = [A,B,C,D]
 ![Loop View](./assets/loop.png)
 
 
+### csv
+**模板**
+````md
+```pack-source test
+姓名: $.{name}, 年龄: $.{age}
+```
+````
+
+**使用**
+````md
+```pack-view-csv test
+name,age
+张三,18
+李四,19
+王五,20
+```
+````
+
+**效果**
+```md
+姓名: 张三, 年龄: 18
+姓名: 李四, 年龄: 19
+姓名: 王五, 年龄: 20
+```
+
+
+
 ## 配合其他插件使用
 
 ### dataview

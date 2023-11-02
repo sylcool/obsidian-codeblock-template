@@ -21,12 +21,16 @@ export class SettingsManager{
     return Object.keys(this._plugin.settings.sourceInfos)
   }
 
-  getSuggestion4Input(input: string){
+  getSuggestion4Input(input: string): string[]{
     let name = '';
     if(input.indexOf("...") !== -1){
       name = input.replace("...", "").trim();
     }else{
-      name = input.match(RE.reCodeBlockName4View)?.[0] ?? '';
+      name = input.match(RE.reCsvCodeBlockName4View)?.[0] ?? '';
+	  if (name){
+		  return [name];
+	  }
+	  name = input.match(RE.reCodeBlockName4View)?.[0] ?? '';
     }
     return Object.keys(this._plugin.settings.sourceInfos).filter((value) => value.indexOf(name) !== -1)
   }
