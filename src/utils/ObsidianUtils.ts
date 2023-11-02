@@ -187,18 +187,21 @@ export class StrOpt {
 export class RE {
   // 匹配CodeBlock前缀（```pack-source name）
   static readonly reCodeBlockPrefix4Source
-    = /[`]{3,}pack-source[\s]*[a-zA-Z_][\w]*\n/g
+    = /[`]{3,}pack-source[\s]*(\S+){1}\n/g
 
   static readonly reCodeBlockPrefix4View
     = /[`]{3,}pack-source[\s]*[a-zA-Z_][\w]*\n/g
 
   // 从source前缀中匹配sourceName
   static readonly reCodeBlockName4Source
-    = /(?<=`{3,}pack-source[\s]*)[a-zA-Z_][\w]*/g
+    = /(?<=`{3,}pack-source[\s]*)(\S+){1}/g
 
   // 从view前缀中匹配viewName
   static readonly reCodeBlockName4View
-    = /(?<=`{3,}pack-view[\s]*)[a-zA-Z_][\w]*/g
+    = /(?<=`{3,}pack-view[\s]*)(\S+){1}$/g
+
+static readonly reCsvCodeBlockName4View
+	= /(?<=`{3,}pack-view-csv[\s]*)(\S+){1}$/g
 
   // 匹配需要替换的字符串（$.{varName}）
   static readonly reNeedReplaceStr = /\$\.\{[\s\S]*?\}/g

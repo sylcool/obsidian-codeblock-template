@@ -1,5 +1,8 @@
 export interface CodeBlockPostViewInfo {
+	id: string
+	name: string
   input: string
+  inputType: string
   viewPath: string
 }
 

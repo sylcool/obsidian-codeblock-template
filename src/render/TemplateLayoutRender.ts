@@ -1,8 +1,9 @@
-import { MarkdownRenderer, TFile } from "obsidian";
+import {MarkdownPreviewRenderer, MarkdownRenderer, TFile} from "obsidian";
 import CodeBlockTemplatePlugin from "src/main";
 import { FileOpt, RE } from "src/utils/ObsidianUtils";
 import { ViewManager } from "src/manager/ViewMananger";
 import { SourceManager } from "src/manager/SourceManager";
+import {CodeBlockPostViewInfo} from "../model/ViewMesModel";
 
 export class TemplateLayoutRender{
   private static _instance : TemplateLayoutRender;
@@ -92,19 +93,16 @@ export class TemplateLayoutRender{
       const cls = this._viewManager.getClassNameList4Name(name, key)
       const view = allViews[key];
       let templContent;
-      if(!isEmpty) templContent = await this._sourceManager.getTemplContent(name,view.input)
+      if(!isEmpty) templContent = await this._sourceManager.getTemplContent(view)
       this.render(cls, templContent, view.viewPath)
     }
   }
 
   async render4ID(
-    viewName: string,
-    elID: string,
-    input: string,
-    path: string,
+	view: CodeBlockPostViewInfo
   ) {
-    const templContent = await this._sourceManager.getTemplContent(viewName,input)
-    this.render(`pack-view-${viewName}-${elID}`, templContent, path)
+    const templContent = await this._sourceManager.getTemplContent(view)
+    this.render(`pack-view-${view.name}-${view.id}`, templContent, view.viewPath)
   }
 
   async renderAll() {
